@@ -1,0 +1,4 @@
+# Normalise line endings: LF in the repository for all text files.
+* text=auto eol=lf
+*.sh   text eol=lf
+*.go   text eol=lf

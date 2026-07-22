@@ -1,0 +1,14 @@
+# Binaries
+/go-ovs-monitor
+/go-ovs-monitor.exe
+/bin/
+
+# Go
+*.test
+*.out
+coverage.*
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
