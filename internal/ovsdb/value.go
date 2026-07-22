@@ -49,6 +49,18 @@ func decodeSet(v json.RawMessage) []json.RawMessage {
 	return []json.RawMessage{v}
 }
 
+// decodeOptScalar decodes an OVSDB "optional scalar" column. Columns like
+// Interface.admin_state are encoded as an empty set ["set",[]] when unset and as
+// the bare atom when present, so a plain string decode would wrongly yield the
+// literal "["set",[]]".
+func decodeOptScalar(v json.RawMessage) string {
+	items := decodeSet(v)
+	if len(items) == 0 {
+		return ""
+	}
+	return rawToString(items[0])
+}
+
 // decodeUUIDSet returns the UUID strings referenced by a set-of-uuids column
 // (for example Bridge.ports or Port.interfaces).
 func decodeUUIDSet(v json.RawMessage) []string {

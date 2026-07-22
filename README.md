@@ -74,7 +74,49 @@ sudo ./scripts/demo-lab.sh down
 
 ## Example session
 
-<!-- CAPTURED_OUTPUT -->
+Captured against a real `ovs-vswitchd` running the demo lab:
+
+```console
+$ sudo ./scripts/demo-lab.sh up
+generating ARP + ICMP across br-demo ...
+demo lab ready: bridge br-demo with ports p-a (10.20.0.1) and p-b (10.20.0.2)
+
+$ sudo ./go-ovs-monitor bridges
+bridge br-demo (datapath_type=dummy, 3 ports)
+  p-a              type=dummy    rx=10/996B tx=10/996B link=up
+  p-b              type=dummy    rx=10/996B tx=10/996B link=up
+  br-demo          type=internal rx=0/0B tx=1/42B link=up
+
+$ sudo ./go-ovs-monitor flows --bridge br-demo
+4 flow(s) on br-demo:
+  table=0  prio=100   n_packets=2        match=arp                          actions=NORMAL
+  table=0  prio=100   n_packets=9        match=icmp,nw_dst=10.20.0.2        actions=output:2
+  table=0  prio=100   n_packets=9        match=icmp,nw_dst=10.20.0.1        actions=output:1
+  table=0  prio=0     n_packets=0        match=-                            actions=NORMAL
+
+$ sudo ./go-ovs-monitor flows --bridge br-demo --match icmp
+2 flow(s) on br-demo:
+  table=0  prio=100   n_packets=9        match=icmp,nw_dst=10.20.0.2        actions=output:2
+  table=0  prio=100   n_packets=9        match=icmp,nw_dst=10.20.0.1        actions=output:1
+
+$ sudo ./go-ovs-monitor offload
+hw-offload config : false
+datapath flows    : 0 total, 0 offloaded (0%)
+note: running a software datapath (no hardware offload) - expected without a DPU/switchdev NIC
+```
+
+Every command also takes `--json`:
+
+```console
+$ sudo ./go-ovs-monitor offload --json
+{
+  "hw_offload_enabled": false,
+  "datapath": {
+    "TotalFlows": 0,
+    "OffloadedFlows": 0
+  }
+}
+```
 
 ## How it works
 

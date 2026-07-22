@@ -39,6 +39,17 @@ func TestDecodeInt64Map(t *testing.T) {
 	}
 }
 
+func TestDecodeOptScalar(t *testing.T) {
+	// unset optional column -> empty set -> ""
+	if got := decodeOptScalar(json.RawMessage(`["set",[]]`)); got != "" {
+		t.Fatalf("empty optional: got %q, want \"\"", got)
+	}
+	// present as a bare atom
+	if got := decodeOptScalar(json.RawMessage(`"up"`)); got != "up" {
+		t.Fatalf("present optional: got %q, want \"up\"", got)
+	}
+}
+
 func TestDecodeStringMap(t *testing.T) {
 	oc := json.RawMessage(`["map",[["hw-offload","true"]]]`)
 	if got := decodeStringMap(oc)["hw-offload"]; got != "true" {

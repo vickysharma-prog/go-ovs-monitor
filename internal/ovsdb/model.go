@@ -104,8 +104,8 @@ func (c *Client) Bridges() ([]Bridge, error) {
 				p.Interfaces = append(p.Interfaces, Interface{
 					Name:       rawToString(irow["name"]),
 					Type:       rawToString(irow["type"]),
-					AdminState: rawToString(irow["admin_state"]),
-					LinkState:  rawToString(irow["link_state"]),
+					AdminState: decodeOptScalar(irow["admin_state"]),
+					LinkState:  decodeOptScalar(irow["link_state"]),
 					Statistics: decodeInt64Map(irow["statistics"]),
 				})
 			}
