@@ -224,6 +224,7 @@ func cmdOffload(args []string) error {
 func cmdWatch(args []string) error {
 	fs := flag.NewFlagSet("watch", flag.ExitOnError)
 	db := fs.String("db", defaultDB, "ovsdb-server endpoint")
+	bridge := fs.String("bridge", "", "only show interfaces on this bridge (default: all)")
 	_ = fs.Parse(args)
 
 	c, err := dial(*db)
@@ -231,6 +232,32 @@ func cmdWatch(args []string) error {
 		return err
 	}
 	defer c.Close()
+
+	// When a bridge is named, resolve its interface names up front so we can
+	// filter the (table-wide) monitor stream down to that bridge.
+	var only map[string]bool
+	if *bridge != "" {
+		bridges, err := c.Bridges()
+		if err != nil {
+			return err
+		}
+		found := false
+		only = map[string]bool{}
+		for _, b := range bridges {
+			if b.Name != *bridge {
+				continue
+			}
+			found = true
+			for _, p := range b.Ports {
+				for _, i := range p.Interfaces {
+					only[i.Name] = true
+				}
+			}
+		}
+		if !found {
+			return fmt.Errorf("bridge %q not found", *bridge)
+		}
+	}
 
 	// Ask ovsdb-server to monitor the Interface table's name + statistics.
 	req := map[string]interface{}{
@@ -243,7 +270,7 @@ func cmdWatch(args []string) error {
 		return err
 	}
 	fmt.Println("watching interface counters (Ctrl-C to stop)...")
-	printInterfaceUpdate("initial", initial)
+	printInterfaceUpdate("initial", initial, only)
 	for {
 		params, err := c.NextUpdate()
 		if err != nil {
@@ -252,14 +279,15 @@ func cmdWatch(args []string) error {
 		// params is [monitor-id, table-updates]; take the table-updates element.
 		var arr []json.RawMessage
 		if json.Unmarshal(params, &arr) == nil && len(arr) == 2 {
-			printInterfaceUpdate("update", arr[1])
+			printInterfaceUpdate("update", arr[1], only)
 		}
 	}
 }
 
 // printInterfaceUpdate renders the Interface rows in an OVSDB table-updates
-// object, showing each interface's current rx/tx packet counters.
-func printInterfaceUpdate(kind string, tableUpdates json.RawMessage) {
+// object, showing each interface's current rx/tx packet counters. If only is
+// non-nil, interfaces whose name is not in it are skipped.
+func printInterfaceUpdate(kind string, tableUpdates json.RawMessage, only map[string]bool) {
 	var upd struct {
 		Interface map[string]struct {
 			New map[string]json.RawMessage `json:"new"`
@@ -275,6 +303,9 @@ func printInterfaceUpdate(kind string, tableUpdates json.RawMessage) {
 			continue
 		}
 		name := ovsdb.RawString(row.New["name"])
+		if only != nil && !only[name] {
+			continue
+		}
 		stats := ovsdb.StatsMap(row.New["statistics"])
 		names = append(names, name)
 		rows[name] = fmt.Sprintf("rx_pkts=%d tx_pkts=%d", stats["rx_packets"], stats["tx_packets"])
