@@ -6,7 +6,7 @@ bridges, ports and live interface counters, reads **OpenFlow** rules through
 `ovs-ofctl` with table/match filtering, and reports **datapath hardware-offload**
 status the way you would verify a DPU / switchdev offload.
 
-It talks to OVS the same way OVN and ovn-kubernetes do — a direct OVSDB client,
+It talks to OVS the same way OVN and ovn-kubernetes do a direct OVSDB client,
 not a wrapper around `ovs-vsctl`.
 
 ## Why
